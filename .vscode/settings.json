@@ -1,0 +1,7 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+  "jupyter.notebookFileRoot": "${workspaceFolder}",
+  "jupyter.kernels.excludePythonEnvironments": [
+    "C:\\msys64\\ucrt64\\bin\\python.exe"
+  ]
+}
