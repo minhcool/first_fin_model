@@ -34,14 +34,35 @@ The main ML strategy is a daily long/cash SPY timing strategy:
 - No intraday trading
 - Signals are evaluated out of sample with walk-forward splits
 
+## Long/Short Research Direction
+
+The next research step is to test a long/short version of the model:
+
+- If the model is bullish: hold `+100% SPY`
+- If the model is bearish: hold `-100% SPY`
+- If a neutral threshold is added later: hold `0% cash`
+
+This is a research extension, not a live-trading-ready assumption. A short position is more complicated than a long position because the backtest must eventually model:
+
+- Whether shares are available to borrow
+- Short borrow fees or hard-to-borrow costs
+- Margin requirements and possible margin calls
+- Financing cost on borrowed exposure
+- Realistic execution price, such as next open, close auction, or VWAP
+- The fact that a switch from `+100%` long to `-100%` short is a `200%` notional turnover event
+
+For now, the first long/short implementation treats `+1.0` as fully long, `0.0` as cash, and `-1.0` as fully short. This lets the research pipeline measure whether bearish predictions are useful before adding a more realistic broker/margin model.
+
 ## Assumptions
 
 - Transaction cost: `1.0` basis point per amount traded in the ML notebook
 - This is equivalent to `0.01%` of traded notional
 - A full switch from cash to SPY costs `0.01%`
 - A full round trip from cash to SPY and back to cash costs about `0.02%`
+- Preliminary short borrow cost for long/short research: `25` basis points per year when short
 - No taxes are modeled
 - No bid-ask spread or slippage is modeled beyond the transaction-cost assumption
+- Current execution assumption: signal uses information through today's daily close and applies to the next close-to-close return
 - Results use historical daily data and should not be treated as live trading performance
 
 ## Current Models
@@ -70,6 +91,7 @@ The current best-performing model in `notebooks/07_walk_forward_ml.ipynb` is `lo
 - Uses a relatively small set of assets and a limited set of ML models
 - The strategy trades only SPY or cash, so it does not test broader portfolio allocation
 - The backtest assumes daily close-to-close execution and simplified trading costs
+- Short selling is only a preliminary research mode and does not yet fully model broker-specific margin, borrow availability, or hard-to-borrow fees
 - Hyperparameter tuning and model selection are still limited
 - Results may be sensitive to the chosen date range, market regime, and transaction-cost assumption
 - More robustness checks are needed before making any live-trading claim

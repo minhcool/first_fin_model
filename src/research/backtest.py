@@ -99,10 +99,62 @@ def backtest_weights(
     return daily.reset_index(drop=True), metrics
 
 
+def backtest_positions(
+    actual_returns: pd.Series,
+    positions: pd.Series,
+    *,
+    name: str,
+    transaction_cost_bps: float = 1.0,
+    short_borrow_cost_bps: float = 0.0,
+    trading_days: int = TRADING_DAYS,
+) -> tuple[pd.DataFrame, dict[str, float | str]]:
+    actual_returns = actual_returns.sort_index()
+    positions = positions.reindex(actual_returns.index).fillna(0.0).astype(float)
+
+    turnover = positions.diff().abs().fillna(positions.abs())
+    transaction_cost = turnover * (transaction_cost_bps / 10_000)
+    short_exposure = positions.clip(upper=0).abs()
+    short_borrow_cost = short_exposure * (short_borrow_cost_bps / 10_000 / trading_days)
+    strategy_returns = positions * actual_returns - transaction_cost - short_borrow_cost
+
+    daily = pd.DataFrame(
+        {
+            "Date": actual_returns.index,
+            "strategy": name,
+            "actual_return": actual_returns,
+            "position": positions,
+            "gross_return": positions * actual_returns,
+            "transaction_cost": transaction_cost,
+            "short_borrow_cost": short_borrow_cost,
+            "strategy_return": strategy_returns,
+            "turnover": turnover,
+            "exposure": positions.abs(),
+            "net_exposure": positions,
+            "short_exposure": short_exposure,
+        }
+    ).dropna(subset=["strategy_return"])
+    daily = daily.set_index("Date", drop=False)
+    daily["equity_curve"] = (1 + daily["strategy_return"]).cumprod()
+
+    metrics = performance_metrics(
+        daily["strategy_return"],
+        name=name,
+        exposure=daily["exposure"],
+        turnover=daily["turnover"],
+        transaction_cost=daily["transaction_cost"],
+        trading_days=trading_days,
+    )
+    metrics["avg_net_exposure"] = float(daily["net_exposure"].mean())
+    metrics["short_day_rate"] = float((daily["position"] < 0).mean())
+    metrics["long_day_rate"] = float((daily["position"] > 0).mean())
+    metrics["cash_day_rate"] = float((daily["position"] == 0).mean())
+    metrics["total_short_borrow_cost"] = float(daily["short_borrow_cost"].sum())
+    return daily.reset_index(drop=True), metrics
+
+
 def format_percent_table(frame: pd.DataFrame, percent_cols: list[str]) -> pd.DataFrame:
     display_frame = frame.copy()
     for col in percent_cols:
         if col in display_frame:
             display_frame[col] = display_frame[col].map(lambda value: "" if pd.isna(value) else f"{value:.2%}")
     return display_frame
-
