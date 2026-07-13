@@ -139,6 +139,40 @@ Reports:
 - `reports/adaptive_retraining_period_results.csv`
 - Reproducible script: `src/research/adaptive_retraining.py`
 
+## Fractional Position Sizing Test
+
+The long/short model was also tested with fractional position sizes while keeping exposure capped inside `[-1.0, +1.0]`. Instead of only allowing:
+
+```text
+-1.0, 0.0, +1.0
+```
+
+the fractional tests allow grids such as:
+
+```text
+-1.00, -0.75, -0.50, -0.25, 0.00, +0.25, +0.50, +0.75, +1.00
+```
+
+Because a plain expected-return optimizer would still usually jump to `+1` or `-1`, the fractional test adds a simple risk penalty. The `10bp`, `20bp`, `50bp`, and `100bp` names mean the model needs a larger estimated daily edge before taking a full-size position.
+
+Current six-month retrain results:
+
+| Sizing | Annual Return | Sharpe | Max Drawdown | Avg Exposure | Annual Turnover |
+|---|---:|---:|---:|---:|---:|
+| `discrete_full` | `22.64%` | `1.14` | `-25.17%` | `1.00` | `51.39` |
+| `fractional_quarter_10bp_edge` | `22.26%` | `1.14` | `-24.79%` | `0.97` | `52.88` |
+| `fractional_quarter_50bp_edge` | `15.71%` | `0.93` | `-23.29%` | `0.82` | `49.18` |
+| `fractional_quarter_100bp_edge` | `10.24%` | `0.91` | `-15.34%` | `0.53` | `33.53` |
+
+Fractional sizing helps risk control, but it is not a complete fix. The conservative `100bp` version cuts max drawdown a lot, but annual return falls below SPY buy-and-hold. The aggressive `10bp` version has almost the same Sharpe as the full-size model with slightly lower drawdown, but it still does not prevent bad periods where the model is directionally wrong and short during a strong SPY rally.
+
+Reports:
+
+- `reports/fractional_position_sizing_summary.csv`
+- `reports/fractional_position_sizing_split_results.csv`
+- `reports/fractional_position_distribution.csv`
+- Reproducible script: `src/research/fractional_position_sizing.py`
+
 ## Strengths
 
 - Uses out-of-sample walk-forward testing instead of training and testing on the same dates
