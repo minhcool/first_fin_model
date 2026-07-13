@@ -112,6 +112,33 @@ Useful future tests:
 
 The tradeoff is noise. With daily data, a week has only about `5` trading rows and a month has only about `21` trading rows, so Sharpe, drawdown, and win rate become much less reliable on a single split. Short windows should be judged across many repeated splits, not from one good or bad period.
 
+## Adaptive Retraining Test
+
+The first adaptive retraining experiment keeps the training window at `36` months, but changes how often `logistic_regression` is retrained:
+
+- `six_month`: retrain every `6` months
+- `monthly`: retrain every `1` month
+- `biweekly`: retrain every `2` weeks
+
+This tests whether the model benefits from learning from newer realized outcomes during what used to be a fixed `6` month test block. It avoids lookahead by training only on rows whose outcomes would already be known before the next prediction period starts.
+
+Current results for cost-aware long/short SPY:
+
+| Refresh | Periods | Annual Return | Sharpe | Max Drawdown | Annual Turnover | Total Transaction Cost |
+|---|---:|---:|---:|---:|---:|---:|
+| `six_month` | `16` | `22.64%` | `1.14` | `-25.17%` | `51.39` | `3.95%` |
+| `biweekly` | `202` | `17.69%` | `0.94` | `-34.23%` | `100.31` | `7.71%` |
+| `monthly` | `93` | `-8.54%` | `-0.36` | `-60.25%` | `70.12` | `5.39%` |
+| `SPY buy-and-hold` | same dates | `15.44%` | `0.83` | `-33.72%` | `0.00` | `0.00%` |
+
+In this first run, updating more often does not automatically improve the strategy. The `biweekly` version beats SPY but has much higher turnover and worse drawdown than the `six_month` version. The `monthly` version performs badly because it sometimes learns a bearish regime and stays short during sharp rebounds.
+
+Reports:
+
+- `reports/adaptive_retraining_summary.csv`
+- `reports/adaptive_retraining_period_results.csv`
+- Reproducible script: `src/research/adaptive_retraining.py`
+
 ## Strengths
 
 - Uses out-of-sample walk-forward testing instead of training and testing on the same dates
