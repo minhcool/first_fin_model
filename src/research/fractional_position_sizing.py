@@ -44,6 +44,13 @@ SIZING_CONFIGS = (
         threshold_ladder_bps=(5.0, 10.0, 15.0, 20.0),
         threshold_ladder_sizes=(0.25, 0.50, 0.75, 1.0),
     ),
+    SizingConfig(
+        "threshold_ladder_10_40bp",
+        QUARTER_GRID,
+        None,
+        threshold_ladder_bps=(10.0, 20.0, 30.0, 40.0),
+        threshold_ladder_sizes=(0.25, 0.50, 0.75, 1.0),
+    ),
     SizingConfig("fractional_quarter_10bp_edge", QUARTER_GRID, 0.0010),
     SizingConfig("fractional_quarter_20bp_edge", QUARTER_GRID, 0.0020),
     SizingConfig("fractional_quarter_30bp_edge", QUARTER_GRID, 0.0030),
