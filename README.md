@@ -160,11 +160,14 @@ Current six-month retrain results:
 | Sizing | Annual Return | Sharpe | Max Drawdown | Avg Exposure | Annual Turnover |
 |---|---:|---:|---:|---:|---:|
 | `discrete_full` | `22.64%` | `1.14` | `-25.17%` | `1.00` | `51.39` |
+| `threshold_ladder_5_20bp` | `21.23%` | `1.12` | `-25.16%` | `0.92` | `53.93` |
 | `fractional_quarter_10bp_edge` | `22.26%` | `1.14` | `-24.79%` | `0.97` | `52.88` |
 | `fractional_quarter_50bp_edge` | `15.71%` | `0.93` | `-23.29%` | `0.82` | `49.18` |
 | `fractional_quarter_100bp_edge` | `10.24%` | `0.91` | `-15.34%` | `0.53` | `33.53` |
 
-Fractional sizing helps risk control, but it is not a complete fix. The conservative `100bp` version cuts max drawdown a lot, but annual return falls below SPY buy-and-hold. The aggressive `10bp` version has almost the same Sharpe as the full-size model with slightly lower drawdown, but it still does not prevent bad periods where the model is directionally wrong and short during a strong SPY rally.
+The `threshold_ladder_5_20bp` version uses an explicit rule: `5bp` expected daily edge maps to `25%` exposure, `10bp` to `50%`, `15bp` to `75%`, and `20bp` or more to `100%`. This is easy to explain, but in the current model it still spends many days at full size because the estimated edges are often above `20bp`.
+
+Fractional sizing helps risk control, but it is not a complete fix. The conservative `100bp` version cuts max drawdown a lot, but annual return falls below SPY buy-and-hold. The aggressive `10bp` and threshold-ladder versions have similar Sharpe to the full-size model with slightly lower average exposure, but they still do not prevent bad periods where the model is directionally wrong and short during a strong SPY rally.
 
 Reports:
 

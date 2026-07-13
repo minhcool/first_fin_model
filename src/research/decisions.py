@@ -80,3 +80,43 @@ def choose_cost_aware_positions(
         previous_position = best_position
 
     return pd.Series(positions, index=expected_returns.index, name="position")
+
+
+def choose_threshold_ladder_positions(
+    expected_returns: pd.Series,
+    *,
+    thresholds_bps: tuple[float, ...] = (5.0, 10.0, 15.0, 20.0),
+    sizes: tuple[float, ...] = (0.25, 0.50, 0.75, 1.0),
+) -> pd.Series:
+    """Convert expected daily edge into capped fractional positions.
+
+    Example with the default ladder:
+
+    - absolute expected edge below 5bp -> 0.00
+    - at least 5bp -> 0.25
+    - at least 10bp -> 0.50
+    - at least 15bp -> 0.75
+    - at least 20bp -> 1.00
+
+    Negative expected edges receive negative positions.
+    """
+    if len(thresholds_bps) != len(sizes):
+        raise ValueError("thresholds_bps and sizes must have the same length.")
+    if any(threshold <= 0 for threshold in thresholds_bps):
+        raise ValueError("All thresholds must be positive.")
+    if any(size <= 0 or size > 1 for size in sizes):
+        raise ValueError("All sizes must be inside (0, 1].")
+
+    ladder = sorted(zip(thresholds_bps, sizes), key=lambda item: item[0])
+    positions: list[float] = []
+
+    for expected_return in expected_returns.fillna(0.0):
+        edge_bps = float(expected_return) * 10_000
+        abs_edge_bps = abs(edge_bps)
+        size = 0.0
+        for threshold_bps, threshold_size in ladder:
+            if abs_edge_bps >= threshold_bps:
+                size = threshold_size
+        positions.append(float(np.sign(edge_bps) * size))
+
+    return pd.Series(positions, index=expected_returns.index, name="position")

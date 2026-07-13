@@ -18,7 +18,7 @@ from src.research.adaptive_retraining import (
     make_refresh_periods,
 )
 from src.research.backtest import TRADING_DAYS, max_drawdown, performance_metrics
-from src.research.decisions import choose_cost_aware_positions
+from src.research.decisions import choose_cost_aware_positions, choose_threshold_ladder_positions
 from src.research.features import make_next_day_direction_dataset
 
 
@@ -27,6 +27,8 @@ class SizingConfig:
     name: str
     allowed_positions: tuple[float, ...]
     full_position_edge: float | None
+    threshold_ladder_bps: tuple[float, ...] | None = None
+    threshold_ladder_sizes: tuple[float, ...] | None = None
 
 
 QUARTER_GRID = tuple(np.round(np.arange(-1.0, 1.0 + 0.25, 0.25), 2))
@@ -35,6 +37,13 @@ HALF_GRID = (-1.0, -0.5, 0.0, 0.5, 1.0)
 
 SIZING_CONFIGS = (
     SizingConfig("discrete_full", (-1.0, 0.0, 1.0), None),
+    SizingConfig(
+        "threshold_ladder_5_20bp",
+        QUARTER_GRID,
+        None,
+        threshold_ladder_bps=(5.0, 10.0, 15.0, 20.0),
+        threshold_ladder_sizes=(0.25, 0.50, 0.75, 1.0),
+    ),
     SizingConfig("fractional_quarter_10bp_edge", QUARTER_GRID, 0.0010),
     SizingConfig("fractional_quarter_20bp_edge", QUARTER_GRID, 0.0020),
     SizingConfig("fractional_quarter_30bp_edge", QUARTER_GRID, 0.0030),
@@ -102,14 +111,22 @@ def make_base_predictions(dataset: pd.DataFrame, feature_cols: list[str]) -> pd.
 def apply_sizing_config(base_predictions: pd.DataFrame, config: SizingConfig) -> pd.DataFrame:
     predictions = base_predictions.copy()
     predictions["sizing_config"] = config.name
-    predictions["position"] = choose_cost_aware_positions(
-        predictions["expected_spy_return"],
-        mode="long_short",
-        allowed_positions=config.allowed_positions,
-        full_position_edge=config.full_position_edge,
-        transaction_cost_bps=TRANSACTION_COST_BPS,
-        short_borrow_cost_bps=SHORT_BORROW_COST_BPS,
-    ).to_numpy()
+    if config.threshold_ladder_bps is not None and config.threshold_ladder_sizes is not None:
+        positions = choose_threshold_ladder_positions(
+            predictions["expected_spy_return"],
+            thresholds_bps=config.threshold_ladder_bps,
+            sizes=config.threshold_ladder_sizes,
+        )
+    else:
+        positions = choose_cost_aware_positions(
+            predictions["expected_spy_return"],
+            mode="long_short",
+            allowed_positions=config.allowed_positions,
+            full_position_edge=config.full_position_edge,
+            transaction_cost_bps=TRANSACTION_COST_BPS,
+            short_borrow_cost_bps=SHORT_BORROW_COST_BPS,
+        )
+    predictions["position"] = positions.to_numpy()
     predictions["turnover"] = predictions["position"].diff().abs().fillna(predictions["position"].abs())
     predictions["transaction_cost"] = predictions["turnover"] * (TRANSACTION_COST_BPS / 10_000)
     predictions["short_borrow_cost"] = (
