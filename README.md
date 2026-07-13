@@ -25,7 +25,7 @@ The ML notebooks mostly use daily close prices to build returns, momentum, volat
 
 ## Trading Setup
 
-The main ML strategy is a daily long/cash SPY timing strategy:
+The original ML trading setup is a daily long/cash SPY timing strategy:
 
 - If the model predicts SPY up tomorrow: hold `100% SPY`
 - If the model predicts SPY down tomorrow: hold `100% cash`
@@ -75,6 +75,37 @@ The walk-forward ML notebook tests:
 - Gradient Boosting
 
 The current best-performing model in `notebooks/07_walk_forward_ml.ipynb` is `logistic_regression`, but this should be treated as a research result, not proof that the model is robust.
+
+## Fair Comparison Note
+
+The older rule-strategy notebooks originally reported results over all available daily history, roughly from `2015` to `2026`. The ML notebook is stricter: it uses walk-forward testing where each model trains on the prior `36` months, then trades only the next `6` months out of sample.
+
+That means the original rule-strategy results and the ML results were not fully apples-to-apples. The rule strategies were judged across older market regimes too, while the ML results were judged only on rolling out-of-sample test windows starting on `2018-10-16`.
+
+To make the comparison fairer, the older daily rule-strategy outputs were re-scored on the exact same ML test calendar:
+
+- `16` test windows
+- `1,937` ML out-of-sample test days
+- First test date: `2018-10-16`
+- Last test date: `2026-07-02`
+- Aggregate report: `reports/walk_forward_strategy_comparison.csv`
+- Split-by-split report: `reports/walk_forward_strategy_split_results.csv`
+- Simple spreadsheet report: `reports/walk_forward_strategy_comparison_simple.xlsx`
+
+The rule strategies are not retrained because they are rule-based rather than fitted models. For them, the fairer comparison is to filter their generated daily returns to the same out-of-sample test dates used by the ML model. Some older stock and baseline files have slightly fewer rows than `1,937` because their source feature history does not cover every ML test date.
+
+## Smaller Walk-Forward Windows
+
+Shorter walk-forward windows can work, and they are a useful next robustness test. The current `36` month train / `6` month test setup is stable enough to estimate risk metrics, but it may be slow to notice when an alpha stops working.
+
+Useful future tests:
+
+- `36` month train / `3` month test
+- `24` month train / `1` month test
+- `12` month train / `1` month test
+- Possibly `6` month train / `2` week test for very short-lived signals
+
+The tradeoff is noise. With daily data, a week has only about `5` trading rows and a month has only about `21` trading rows, so Sharpe, drawdown, and win rate become much less reliable on a single split. Short windows should be judged across many repeated splits, not from one good or bad period.
 
 ## Strengths
 
