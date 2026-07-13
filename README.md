@@ -56,14 +56,19 @@ For now, the first long/short implementation treats `+1.0` as fully long, `0.0` 
 ## Assumptions
 
 - Transaction cost: `1.0` basis point per amount traded in the ML notebook
-- This is equivalent to `0.01%` of traded notional
+- `1` basis point is `1 / 10,000`, or `0.01%`, of traded notional
+- Daily transaction cost is `turnover * transaction_cost_bps / 10,000`
+- Total transaction cost is approximately `annual_turnover * years * transaction_cost_bps / 10,000`
 - A full switch from cash to SPY costs `0.01%`
 - A full round trip from cash to SPY and back to cash costs about `0.02%`
 - Preliminary short borrow cost for long/short research: `25` basis points per year when short
 - No taxes are modeled
 - No bid-ask spread or slippage is modeled beyond the transaction-cost assumption
 - Current execution assumption: signal uses information through today's daily close and applies to the next close-to-close return
+- The current walk-forward ML notebook subtracts transaction costs in the realized backtest and uses a cost-aware decision rule before trading
 - Results use historical daily data and should not be treated as live trading performance
+
+The cost-aware decision rule does not make the classifier itself a fully cost-optimized trading model. The classifier still learns next-day direction. After training, the decision layer estimates next-day SPY return from the model's score and the training split's average up/down return sizes, then chooses long, cash, or short after subtracting estimated transaction and short-borrow costs. A more advanced future version could train directly on expected net return instead of direction.
 
 ## Current Models
 
